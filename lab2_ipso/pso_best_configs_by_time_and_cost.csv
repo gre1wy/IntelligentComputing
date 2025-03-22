@@ -1,0 +1,13 @@
+function,criteria,num_particles,alpha1,alpha2,avg_cost,avg_time_sec,avg_score,delta_to_theoretical_min
+ackley,min_time,20,1.5,1.0,1392.0,0.0495,1e-06,1e-06
+ackley,min_cost,20,1.0,1.0,1316.0,0.0681,1e-06,1e-06
+rosenbrock,min_time,20,1.5,1.5,1100.0,0.034,1e-06,1e-06
+rosenbrock,min_cost,20,1.0,1.0,1012.0,0.036,0.0,0.0
+cross_in_tray,min_time,20,1.0,1.5,604.0,0.0142,-2.06261,0.0
+cross_in_tray,min_cost,20,1.5,1.5,594.0,0.0173,-2.06261,0.0
+holder_table,min_time,50,1.0,1.5,1935.0,0.051,-19.2085,0.0
+holder_table,min_cost,50,1.0,1.0,1895.0,0.0521,-19.208501,1e-06
+mccormick,min_time,20,2.0,2.0,2000.0,0.0435,-1.913223,7.7e-05
+mccormick,min_cost,20,1.0,1.0,2000.0,0.0702,-1.913223,7.7e-05
+styblinski_tang,min_time,20,1.0,1.0,554.0,0.0203,-78.332162,0.000182
+styblinski_tang,min_cost,20,1.0,1.0,554.0,0.0203,-78.332162,0.000182
