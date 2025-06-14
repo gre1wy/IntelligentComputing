@@ -1,0 +1,44 @@
+\selectlanguage *[]{ukrainian}
+\contentsline {section}{\numberline {1}Актуальність теми}{2}{section.1}%
+\contentsline {section}{\numberline {2}Мета та завдання роботи}{2}{section.2}%
+\contentsline {section}{\numberline {3}Постановка задачі VRPTW}{2}{section.3}%
+\contentsline {subsection}{\numberline {3.1}Параметри штрафів}{3}{subsection.3.1}%
+\contentsline {section}{\numberline {4}Опис алгоритму Ant Colony Optimization}{3}{section.4}%
+\contentsline {subsection}{\numberline {4.1}Загальна ідея ACO}{3}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}Деталі реалізованої модифікації}{4}{subsection.4.2}%
+\contentsline {subsubsection}{\numberline {4.2.1}Структури даних}{4}{subsubsection.4.2.1}%
+\contentsline {subsubsection}{\numberline {4.2.2}Параметри алгоритму}{4}{subsubsection.4.2.2}%
+\contentsline {subsubsection}{\numberline {4.2.3}Крок побудови туру}{4}{subsubsection.4.2.3}%
+\contentsline {subsubsection}{\numberline {4.2.4}Глобальне оновлення феромону}{5}{subsubsection.4.2.4}%
+\contentsline {subsubsection}{\numberline {4.2.5}Критерій зупинки}{5}{subsubsection.4.2.5}%
+\contentsline {subsubsection}{\numberline {4.2.6}Запис історії}{5}{subsubsection.4.2.6}%
+\contentsline {subsubsection}{\numberline {4.2.7}Повернене значення}{5}{subsubsection.4.2.7}%
+\contentsline {section}{\numberline {5}Опис алгоритму Genetic Algorithm (GA)}{5}{section.5}%
+\contentsline {subsection}{\numberline {5.1}Загальна ідея GA}{5}{subsection.5.1}%
+\contentsline {subsection}{\numberline {5.2}Деталі реалізованої модифікації}{6}{subsection.5.2}%
+\contentsline {subsubsection}{\numberline {5.2.1}Структури даних}{6}{subsubsection.5.2.1}%
+\contentsline {subsubsection}{\numberline {5.2.2}Параметри алгоритму}{6}{subsubsection.5.2.2}%
+\contentsline {subsubsection}{\numberline {5.2.3}Оператори}{6}{subsubsection.5.2.3}%
+\contentsline {paragraph}{Відбір}{6}{section*.5}%
+\contentsline {paragraph}{Кросовер}{6}{section*.6}%
+\contentsline {paragraph}{Мутація}{6}{section*.7}%
+\contentsline {paragraph}{Елітизм}{6}{section*.8}%
+\contentsline {subsubsection}{\numberline {5.2.4}Критерій зупинки}{7}{subsubsection.5.2.4}%
+\contentsline {subsubsection}{\numberline {5.2.5}Запис історії}{7}{subsubsection.5.2.5}%
+\contentsline {subsubsection}{\numberline {5.2.6}Повернене значення}{7}{subsubsection.5.2.6}%
+\contentsline {section}{\numberline {6}Опис алгоритму Tabu Search}{7}{section.6}%
+\contentsline {subsection}{\numberline {6.1}Загальна ідея Tabu Search}{7}{subsection.6.1}%
+\contentsline {subsection}{\numberline {6.2}Деталі реалізованої модифікації}{8}{subsection.6.2}%
+\contentsline {subsubsection}{\numberline {6.2.1}Структури даних}{8}{subsubsection.6.2.1}%
+\contentsline {subsubsection}{\numberline {6.2.2}Параметри алгоритму}{8}{subsubsection.6.2.2}%
+\contentsline {subsubsection}{\numberline {6.2.3}Сусідство}{8}{subsubsection.6.2.3}%
+\contentsline {subsubsection}{\numberline {6.2.4}Алгоритм однієї ітерації}{8}{subsubsection.6.2.4}%
+\contentsline {subsubsection}{\numberline {6.2.5}Запис історії}{8}{subsubsection.6.2.5}%
+\contentsline {subsubsection}{\numberline {6.2.6}Критерій зупинки}{9}{subsubsection.6.2.6}%
+\contentsline {subsubsection}{\numberline {6.2.7}Повернене значення}{9}{subsubsection.6.2.7}%
+\contentsline {section}{\numberline {7}Експериментальна частина}{9}{section.7}%
+\contentsline {subsection}{\numberline {7.1}Налаштування тестів}{9}{subsection.7.1}%
+\contentsline {subsection}{\numberline {7.2}Опис інстансів Solomon}{9}{subsection.7.2}%
+\contentsline {subsection}{\numberline {7.3}Результати}{10}{subsection.7.3}%
+\contentsline {section}{\numberline {8}Деякі графіки збіжності та маршрутів(інстанс r101)}{11}{section.8}%
+\contentsline {section}{\numberline {9}Висновки}{17}{section.9}%

@@ -1,0 +1,705 @@
+\documentclass[12pt,a4paper]{article}
+
+% XeLaTeX: шрифти й мови
+\usepackage{fontspec}
+\usepackage{polyglossia}
+\setmainlanguage{ukrainian}
+\setotherlanguage{english}
+\setmainfont{Times New Roman}
+\newfontfamily\cyrillicfonttt{Courier New}
+
+% Макет сторінки
+\usepackage{geometry}
+\geometry{top=2.5cm,bottom=2.5cm,left=2.5cm,right=2.5cm}
+
+% Графіка й таблиці
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{longtable}
+
+% Математика
+\usepackage{amsmath, amsfonts, amssymb}
+
+% Код
+\usepackage{listings}
+\usepackage{xcolor}
+\lstdefinestyle{pythonstyle}{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    commentstyle=\color{gray},
+    stringstyle=\color{orange!60!black},
+    numberstyle=\tiny\color{gray},
+    numbers=left,
+    numbersep=8pt,
+    frame=single,
+    breaklines=true,
+    tabsize=4,
+    showstringspaces=false
+}
+
+% Гіперпосилання
+\usepackage{hyperref}
+
+% Підписи підграфіків
+\usepackage{caption}
+\usepackage{subcaption}
+\begin{document}
+
+%-------------------- Title page --------------------
+\begin{titlepage}
+    \centering
+    {\large\bfseries Національний технічний університет України\\
+    ``Київський політехнічний інститут імені Ігоря Сікорського'' \par}
+    \vspace{2cm}
+    {\Large Розрахунково-графічна робота\par}
+    \vspace{1cm}
+    {\LARGE\bfseries Порівняння алгоритмів ройового інтелекту (ACO, GA, Tabu Search)\\
+    для задачі маршрутизації транспортних засобів з часовими вікнами\par}
+    \vfill
+    \begin{flushright}
+    Виконав: студент гр.Фі-21\\
+    Грунда Я.І.\\[0.5cm]
+    Перевірив: ас. Железняков Д.В.
+    \end{flushright}
+    \vfill
+    {\large Київ --- \the\year\par}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+%-------------------- Актуальність -------------------
+\section{Актуальність теми}
+Транспортні витрати становлять до 60\,\% операційного бюджету більшості логістичних компаній. 
+Раціональне планування маршрутів із урахуванням часових вікон доставки 
+(\emph{Vehicle Routing Problem with Time Windows}, VRPTW) дає змогу 
+скоротити пробіг, кількість залучених автомобілів і, відповідно, 
+зменшити витрати пального та викиди \(\mathrm{CO_2}\). 
+Серед метаевристик, що практично застосовуються, часто розглядають 
+алгоритми ройового інтелекту (Ant Colony Optimization, Genetic Algorithm) 
+та траєкторні методи (Tabu Search). 
+Тому доцільно оцінити продуктивність цих алгоритмів на вибірці тестових інстансів VRPTW.
+
+\section{Мета та завдання роботи}
+\textbf{Мета}: порівняти якість ACO, GA та Tabu~Search на
+еталонних інстансах Solomon VRPTW.
+
+\textbf{Завдання}:
+\begin{enumerate}
+  \item Вивчити математичну постановку VRPTW.
+  \item Реалізувати версії ACO, GA, Tabu Search з однаковою
+        цільовою функцією.
+  \item Розробити інструмент автоматичного запуску та логування історії cost.
+  \item Провести серію експериментів з однаковим тайм‑лімітом.
+  \item Порівняти мінімальні, середні та максимальні показники cost і distance,
+        зробити висновки.
+\end{enumerate}
+
+
+\section{Постановка задачі VRPTW}
+
+Нехай задано орієнтований граф \(G=(V,E)\), де  
+\(V=\{0,1,\dots,n\}\): вершина \(0\)~— депо, а \(1..n\) — клієнти.  
+Дуга \((i,j)\in E\) характеризується відстанню \(d_{ij}\)  
+(дорівнює часу проїзду).  
+Для кожного клієнта \(i\ (i\ge 1)\) задано
+
+\begin{itemize}
+  \item попит \(q_i\);
+  \item часовий інтервал~\([e_i,l_i]\), у межах якого має
+        розпочатися обслуговування;
+  \item тривалість сервісу \(s_i\).
+\end{itemize}
+
+У депо знаходиться флот із \(K_{\max}\) однакових вантажівок
+ємністю \(Q\) та власним часовим вікном \([e_0,l_0]\).
+Необхідно побудувати набір маршрутів  
+\(\mathcal R=\{R_1,\dots,R_K\}\) (\(K\le K_{\max}\)),  
+кожний з яких починається й закінчується в депо, так щоб
+
+\begin{enumerate}
+  \item кожен клієнт відвіданий рівно один раз;
+  \item \emph{вантажні} та \emph{часові} обмеження виконуються
+        (або штрафуються) для кожного маршруту;
+  \item мінімізується наступна цільова функція:
+\end{enumerate}
+
+\[
+\min\;
+D
++ \lambda_{\text{late}}\sum_{i=1}^{n} L_i
++ \lambda_{\text{over}}\sum_{k=1}^{K} O_k
++ \lambda_{\text{depot}}\sum_{k=1}^{K} D_k
++ \lambda_{\text{veh}}\,
+      \max\bigl(0,\,K-K_{\max}\bigr),
+\]
+
+де
+\begin{description}
+  \item[\(D\)] — сума всіх відстаней по маршрутах;
+  \item[\(L_i\)] — \textbf{запізнення} на клієнті \(i\):
+        \(L_i=\max\bigl(0,\;T_i - l_i\bigr)\),  
+        \(T_i\) — фактичний час початку сервісу;
+  \item[\(O_k\)] — \textbf{перевантаження} маршруту \(k\):
+        \(O_k=\max\bigl(0,\;\sum_{i\in R_k} q_i - Q\bigr)\);
+  \item[\(D_k\)] — \textbf{порушення вікна депо} для маршруту \(k\):  
+        \(D_k=\max\bigl(0,\;t^{\text{back}}_k - l_0\bigr)\),  
+        де \(t^{\text{back}}_k\) — час повернення у депо;
+  \item[\(\lambda_{\ast}\)] — великі штрафні коефіцієнти,
+        що збігаються з \texttt{lambda\_late}, \texttt{lambda\_over},
+        \texttt{lambda\_depot}, \texttt{lambda\_veh}
+        у функції \texttt{evaluate\_solution}.
+\end{description}
+
+Таким чином, якщо всі обмеження виконуються,
+штрафові суми \(L_i,\;O_k,\;D_k\) дорівнюють нулю,
+і функція зводиться до мінімізації маршрутової відстані \(D\)
+та кількості використаних машин.
+
+\subsection{Параметри штрафів}
+\begin{table}[h]
+\centering\begin{tabular}{lcc}
+\toprule
+Коефіцієнт & Значення & Коментар\\
+\midrule
+$\lambda_\text{over}$ & 1\,000 & заборона перевантажень авто\\
+$\lambda_\text{late}$ & 1\,000 & заборона запізнень до клієнтів\\
+$\lambda_\text{depot}$ & 1\,000 & заборона пізнього повернення до депо\\
+$\lambda_\text{veh}$  & 10\,000 & жорстке обмеження кількості авто\\
+\bottomrule
+\end{tabular}
+\caption{Налаштування цільової функції}
+\end{table}
+
+\section{Опис алгоритму Ant Colony Optimization}
+\subsection{Загальна ідея ACO}
+Ant Colony Optimization (ACO) належить до метаевристик ройового
+інтелекту і моделює колективну поведінку колонії мурах, що
+шляхом відкладання \emph{феромону} знаходять найкоротші стежки до
+джерела їжі.  На рівні алгоритму це відбувається так:
+
+\begin{enumerate}
+  \item Кожен агент (``мураха'') послідовно будує розв’язок,
+        переходячи зі вершини \(i\) у вершину \(j\) із вірогідністю,
+        пропорційною \(\tau_{ij}^{\alpha}\,\eta_{ij}^{\beta}\),  
+        де \(\tau_{ij}\)~— інтенсивність феромону,  
+        \(\eta_{ij}\)~— статична евристика  
+        (для VRPTW~— \(1/d_{ij}\)).
+  \item Після побудови всіх розв’язків:
+        \begin{itemize}
+          \item феромон \emph{випаровується}  
+                \(\tau_{ij}\leftarrow(1-\rho)\tau_{ij}\);
+          \item кращі розв’язки \emph{накопичують} феромон  
+                \(\tau_{ij}\leftarrow\tau_{ij}+ \Delta\tau_{ij}\),
+                підсилюючи ребра, якими варто ходити.
+        \end{itemize}
+  \item Процедура повторюється, доки не буде вичерпано ліміт
+        ітерацій або часу.  У процесі мурахи дедалі частіше
+        використовують ребра, що ведуть до глобально кращих
+        траєкторій.
+\end{enumerate}
+
+Таким чином ACO комбінує \textbf{різноманітність} (рандомізовані
+ходи) та \textbf{інтенсифікацію} (підсилення кращих ребер) і
+поступово концентрує пошук поблизу найякісніших рішень.
+
+%-------------------------------------------------
+\subsection{Деталі реалізованої модифікації}
+\subsubsection{Структури даних}
+\begin{itemize}
+  \item \(\tau\in\mathbb R^{(n+1)\times(n+1)}\) — матриця феромону,
+        ініціалізована константою~\(\tau_0\).
+  \item \(\eta_{ij}=1/(d_{ij}+10^{-6})\) — евристична привабливість.
+  \item \texttt{history}: список кортежів
+        \((\text{iter},\,t,\,\text{best\_cost},\,\text{best\_dist})\)
+        для графіків збіжності.
+\end{itemize}
+
+\subsubsection{Параметри алгоритму}
+\begin{table}[h]
+\centering
+\begin{tabular}{lcl}
+\toprule
+Параметр & Значення & Значення за замовчуванням \\
+\midrule
+Кількість мурах $n_{\text{ants}}$ & $10\dots 50$ & 50 \\
+$\alpha$ (вага феромону)          & 1–2 & 1.0 \\
+$\beta$ (вага евристики)          & 2–4 & 3.0 \\
+$\rho$ (випаровування)            & 0.1–0.3 & 0.1 \\
+$q_0$ (ймовірність жадібного кроку) & 0.3–0.7 & 0.6 \\
+$\tau_0$ (старт. феромон)          & $10^{-4}\dots 10^{-2}$ & $10^{-3}$ \\
+\texttt{elitist}                  & True/False & True \\
+\bottomrule
+\end{tabular}
+\caption{Ключові параметри реалізації ACO}
+\end{table}
+
+\subsubsection{Крок побудови туру}
+\begin{enumerate}
+  \item Старт у депо \(0\); множина невідвіданих клієнтів~\(U\).
+  \item Для поточного вузла \(i\) обчислити
+        \(\text{desir}_j=\tau_{ij}^{\alpha}\eta_{ij}^{\beta}\) для
+        всіх \(j\in U\).
+  \item З імовірністю \(q_0\) вибрати
+        \(j=\arg\max_{j\in U}\text{desir}_j\);  
+        інакше провести рулетку по \(\text{desir}_j\).
+  \item Додати \(j\) до туру, виконати \emph{локальне} зменшення
+        феромону:  
+        \(\tau_{ij}\leftarrow(1-\rho)\tau_{ij}+\rho\tau_0\).
+  \item Повторювати, поки \(U=\varnothing\);  
+        на завершення виконати local-update для ребра
+        останній $\to$ депо.
+\end{enumerate}
+
+\subsubsection{Глобальне оновлення феромону}
+Після кожної ітерації:
+\[
+\tau_{ij}\leftarrow(1-\rho)\tau_{ij} 
+      + \sum_{(i,j)\in R_\star}\frac{1}{\text{cost}(R_\star)},
+\]
+де $R_\star$ — глобально найкращий тур (режим \texttt{elitist}).
+У не-elitist-режимі сума береться по всіх мурах поточної ітерації.
+
+\subsubsection{Критерій зупинки}
+Алгоритм працює, доки одночасно виконується
+\[
+\text{elapsed}<\text{time\_limit}\quad\land\quad
+\text{iter}<\text{max\_iter}.
+\]
+Обидва параметри задаються користувачем; кожен може бути~`None`.
+
+\subsubsection{Запис історії}
+Після кожної ітерації у \texttt{history} додається запис
+\((k,\;t,\;\text{best\_cost},\;\text{best\_dist})\),  
+що дозволяє будувати графіки «best-cost / distance vs time»
+і порівнювати збіжність з іншими алгоритмами.
+
+\subsubsection{Повернене значення}
+Метод \texttt{run()} віддає пару
+\[
+(\text{best\_cost},\;\text{best\_tour}),
+\]
+де \texttt{best\_tour} — giant-tour (перестановка клієнтів),
+а вартість \texttt{best\_cost} враховує відстань та всі штрафи,
+визначені у функції \texttt{evaluate\_solution}.
+
+\section{Опис алгоритму Genetic Algorithm (GA)}
+\subsection{Загальна ідея GA}
+Генетичний алгоритм (GA) — це популяційна метаевристика,
+що імітує еволюційні процеси:  
+\emph{відбір найкращих}, \emph{кросовер} (рекомбінація ДНК)  
+та \emph{мутацію}.  
+У контексті VRPTW:
+
+\begin{enumerate}
+  \item Кожен індивід кодує \textbf{giant-tour} —
+        перестановку клієнтів \(1..n\); депо $0$ додається
+        під час декодування.
+  \item Популяція розміром \(P\) оцінюється цільовою функцією
+        (відстань + штрафи за запізнення, перевантаження тощо).
+  \item На кожному поколінні
+        \begin{enumerate}
+          \item обираємо батьків оператором турнірного відбору;
+          \item створюємо потомка кросовером OX (Order Crossover);
+          \item випадково мутуємо потімка, міняючи місцями 2–3 гени;
+          \item еліта (найкращий індивід) копіюється без змін.
+        \end{enumerate}
+  \item Після  завершення ліміту часу або 
+        заданої кількості поколінь повертається глобальний
+        найкращий розв’язок.
+\end{enumerate}
+
+Таким чином GA забезпечує \textbf{різноманітність}
+за рахунок мутацій і рекомбінацій,  
+а \textbf{інтенсифікацію} — через відбір кращих
+та елітизм.
+
+%-------------------------------------------------
+\subsection{Деталі реалізованої модифікації}
+\subsubsection{Структури даних}
+\begin{itemize}
+  \item \texttt{Individual} = (tour, cost),  
+        де \texttt{tour} — список клієнтів,  
+        \texttt{cost} — значення цільової функції.
+  \item \texttt{pop} — список із \(P\) особин.
+  \item \texttt{best} — глобально найкращий індивід.
+  \item \texttt{history} --- кортежі
+        \((\text{покоління},\,t,\,
+        \text{best\_cost},\,\text{best\_dist})\).
+\end{itemize}
+
+\subsubsection{Параметри алгоритму}
+\begin{table}[h]
+\centering
+\begin{tabular}{lcl}
+\toprule
+Параметр & Діапазон / сенс & Значення за замовчуванням \\
+\midrule
+$P$ (\texttt{pop\_size})  & 100–500  & 300 \\
+Ставка кросоверу $p_\text{cx}$ & 0.7–0.95 & 0.9 \\
+Ставка мутації  $p_\text{mut}$ & 0.05–0.3 & 0.2 \\
+Розмір турніру $k$            & 2–5 & 3 \\
+Еліта                         & 1 індивід & +1 \\
+\bottomrule
+\end{tabular}
+\caption{Ключові параметри GA-реалізації}
+\end{table}
+
+\subsubsection{Оператори}
+\paragraph{Відбір}  
+$k$-арний турнір без повернення:  
+обираємо $k$ випадкових індивідів,  
+беремо того, чия \texttt{cost} мінімальна.
+
+\paragraph{Кросовер} — \emph{Order Crossover (OX).}  
+Зберігає відносний порядок клієнтів:
+\begin{enumerate}
+  \item випадковий сегмент [\(a,b\)) копіюється з~батька~1;
+  \item решту позицій послідовно заповнюють гени батька~2,
+        зберігаючи їхню відносну чергу.
+\end{enumerate}
+
+\paragraph{Мутація} — \emph{swap.}  
+З імовірністю $p_\text{mut}$ міняємо місцями 2–3 довільні позиції.
+
+\paragraph{Елітизм}  
+Найкращий індивід популяції копіюється у нове покоління без змін.
+
+\subsubsection{Критерій зупинки}
+Цикл триває, доки виконується
+\[
+\text{elapsed} < \text{time\_limit}
+\quad\land\quad
+\text{generation} < \text{max\_gen}.
+\]
+Будь-який з параметрів може бути \texttt{None}.
+
+\subsubsection{Запис історії}
+Наприкінці кожного покоління:
+\[
+\texttt{history}\; \mathrel{+\!=}\;
+(g,\;t,\;\text{best\_cost},\;\text{best\_dist}),
+\]
+що дозволяє порівнювати криві збіжності з ACO та Tabu Search.
+
+\subsubsection{Повернене значення}
+\texttt{run()} повертає
+\[
+(\text{best\_cost},\;\text{best\_tour}),
+\]
+де \texttt{best\_tour} — giant-tour із мінімальним \texttt{cost}
+за всю еволюцію.
+
+\section{Опис алгоритму Tabu Search}
+\subsection{Загальна ідея Tabu Search}
+Tabu Search (TS) — \emph{траєкторна} метаевристика: вона оперує
+одним робочим розв’язком і крок-за-кроком рухається його околом.
+Основні принципи:
+
+\begin{itemize}
+  \item \textbf{Найкращий доступний сусід.}  
+        На ітерації формується підмножина можливих рухів
+        (swap/relocate). Вибирають той, чия вартість мінімальна,
+        навіть якщо вона \emph{гірша} за поточну.  
+        Так пошук може «перестрибувати» локальні мінімуми.
+  \item \textbf{Короткострокова памʼять (tabu-list).}  
+        Застосований рух заносять у список табу довжини
+        $\textit{tenure}$ і тимчасово забороняють —  
+        це запобігає негайному поверненню та циклам.
+  \item \textbf{Аспірація.}  
+        Якщо табу-рух генерує розв’язок, який
+        \emph{покращує глобальний best}, заборона ігнорується.
+        Отже, «хороші винятки» не блокуються.
+  \item \textbf{Довгострокова еволюція.}  
+        Чергуючи керовані погіршення і заборони,
+        алгоритм поступово досліджує нові області простору
+        й концентрується навколо перспективних зон.
+\end{itemize}
+
+Такий баланс \emph{інтенсифікації} (пошук найкращого сусіда)
+і \emph{диверсифікації} (табуювання та аспірація)
+дозволяє TS ефективно обходити локальні пастки
+та знаходити якісні рішення VRPTW.
+
+\begin{enumerate}
+  \item Початкова точка — випадковий giant-tour.
+  \item На кожній ітерації генерується підмножина
+        сусідів (swap/relocate), оцінюється їхня вартість,
+        і вибирається ліпший \emph{допустимий} кандидат.
+  \item Виконаний рух заноситься в табу-список довжини
+        \texttt{tenure}; прострочені записи автоматично
+        видаляються.
+  \item Алгоритм завершується після тайм-ліміту
+        або коли досягнуто \texttt{max\_iter}.
+\end{enumerate}
+
+\subsection{Деталі реалізованої модифікації}
+\subsubsection{Структури даних}
+\begin{itemize}
+  \item \textbf{Move} = \((i,j,\text{type})\),  
+        де \(\text{type}\in\{\text{``swap''},\,\text{``reloc''}\}\).
+  \item \texttt{tabu} — \textbf{черга} записів \((\text{move},\,\text{expiry})\).
+  \item \texttt{history} — \((\text{iter},\,t,\text{best\_cost},\text{best\_dist})\).
+\end{itemize}
+
+\subsubsection{Параметри алгоритму}
+\begin{table}[h]
+\centering
+\begin{tabular}{lcl}
+\toprule
+Параметр & Діапазон / сенс & Значення за замовчуванням \\
+\midrule
+Довжина tabu~\textbf{tenure}            & 10–40 & 20 \\
+Розмір підмножини о́круги~\textbf{neigh\_size} & 100–500 & 200 \\
+Частка \texttt{swap} у сусідах~\textbf{swap\_rate} & 0.3–0.7 & 0.5 \\
+\bottomrule
+\end{tabular}
+\caption{Ключові параметри Tabu Search}
+\end{table}
+
+\subsubsection{Сусідство}
+\begin{itemize}
+  \item \textbf{Swap}\((i,j)\): міняє місцями позиції \(i\) і \(j\) у giant-tour.
+  \item \textbf{Relocate}\((i\!\to\!j)\): виймає клієнта з позиції \(i\)
+        і вставляє перед \(j\) (або після, щоб зберегти індекси).
+\end{itemize}
+На кожній ітерації випадково відбирається
+\texttt{neigh\_size} рухів згідно зі \texttt{swap\_rate}.
+
+\subsubsection{Алгоритм однієї ітерації}
+\begin{enumerate}
+  \item Для кожного кандидата \(c\) обчислюємо  
+        \(\text{cost}(c)=\)~\texttt{evaluate\_solution}.
+  \item Відкидаємо рух \emph{tabu}, якщо він не дає кращий
+        global~best (аспірація).
+  \item Обираємо кандидата з мінімальним \(\text{cost}\);
+        робимо його новим ``current''.
+  \item Якщо \(\text{cost}<\text{best\_cost}\) —
+        оновлюємо глобальний best.
+  \item Додаємо рух у \texttt{tabu} зі строком
+        дії \(\text{iter}+\texttt{tenure}\).
+\end{enumerate}
+
+\subsubsection{Запис історії}
+Після кожної ітерації:
+\[
+\texttt{history}\mathrel{+\!=}
+(it,\;t,\;\text{best\_cost},\;\text{best\_dist}).
+\]
+
+\subsubsection{Критерій зупинки}
+Пошук триває, доки
+\[
+\text{elapsed}<\text{time\_limit}
+\quad\land\quad
+\text{iter}<\text{max\_iter}.
+\]
+
+\subsubsection{Повернене значення}
+Метод \texttt{run()} повертає
+\[
+(\text{best\_cost},\;\text{best\_tour}),
+\]
+де \texttt{best\_tour} — giant-tour з мінімальним штрафним cost,
+знайдений за весь час роботи.
+
+\section{Експериментальна частина}
+\subsection{Налаштування тестів}
+Тайм-ліміт кожного запуску~— 60 с.  
+Для інстансу \textbf{C101} виконано 10 запусків,  
+для решти~— по 5 запусків з різними початковими seed.
+
+\vspace{0.5em}
+\begin{table}[ht]
+\centering
+\caption{Параметри запуску кожного алгоритму}
+\label{tab:setup}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+\textbf{Параметр} & \textbf{ACO} & \textbf{GA} & \textbf{Tabu Search}\\
+\midrule
+Популяція \,/\, мурахи            & $n_{\text{ants}} = 25$ & $P = 25$ & --- \\
+Вага феромону $\alpha$            & 1.0 & --- & --- \\
+Вага евристики $\beta$            & 1.5 & --- & --- \\
+Коеф. випаровування $\rho$        & 0.1 & --- & --- \\
+$ q_0 $ (жадібність)              & 0.3 & --- & --- \\
+Початковий феромон $\tau_0$       & $1\times10^{-3}$ & --- & --- \\
+Elitist-режим                     & True & --- & --- \\
+\addlinespace
+Турнір $k$                        & --- & 5  & --- \\
+Ставка кросоверу $p_\text{cx}$    & --- & 0.9 & --- \\
+Ставка мутації  $p_\text{mut}$    & --- & 0.8 & --- \\
+\addlinespace
+Tenure табу-списку                & --- & --- & 15 \\
+Розмір околу \textit{neigh\_size} & --- & --- & 250 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Опис інстансів Solomon}
+
+Інстанси Solomon VRPTW поділяються на три класи:
+
+\begin{itemize}
+  \item \textbf{C-серія (Clustered)} — клієнти згруповані у декілька щільних
+        кластерів; корисні для перевірки алгоритму на
+        «багато коротких рейсів усередині кластерів».
+  \item \textbf{R-серія (Random)} — координати клієнтів рівномірно
+        розкидані по всій області; дають довгі радіальні маршрути.
+  \item \textbf{RC-серія (Random‐Clustered)} — змішаний тип,
+        деякі точки утворюють кластери, решта — розкидані випадково.
+\end{itemize}
+
+У кожній серії є підсерії \textbf{1} та \textbf{2}:
+\(\text{C}1, \text{R}1, \text{RC}1\) мають \emph{вузькі} часові вікна,  
+через що потрібна більша кількість машин;  
+серії~\(\text{C}2, \text{R}2, \text{RC}2\) мають
+\emph{ширші} вікна й зазвичай дозволяють менше транспортних засобів.
+
+\subsection{Результати}
+\begin{longtable}{lcccccc}
+\toprule
+Алгоритм & min cost & avg cost & max cost & min dist & avg dist & max dist\\ 
+\midrule
+ACO  & 2491404.42  & 2534961.06  & 2584992.51 & 1889.96 & 1949.43 & 2048.73\\
+GA   & 3171845.28  & 4155713.68 & 5140755.60 & 3480.26 & 3672.15 & 3955.61\\
+Tabu & 586228.99  & 1208464.63 & 1435677.21 & 2655.69  & 2986.31 & 3410.03\\
+\bottomrule
+\caption{Підсумкова статистика (інстанс c101)}
+\end{longtable}
+
+\begin{longtable}{lcccccc}
+\toprule
+Алгоритм & min cost & avg cost & max cost & min dist & avg dist & max dist\\ 
+\midrule
+ACO  & 2423103.44  & 2469665.94  & 2500398.61 & 1901.07  & 1941.11  & 1963.06\\
+GA   & 69401.78   & 118311.21  & 161616.55 & 2795.04  & 2920.85 & 3073.03\\
+Tabu & 1919.95   & 1946.90 & 1967.86 & 1919.95  & 1946.90 & 1967.86\\
+\bottomrule
+\caption{Підсумкова статистика (інстанс r101)}
+\end{longtable}
+
+\begin{longtable}{lcccccc}
+\toprule
+Алгоритм & min cost & avg cost & max cost & min dist & avg dist & max dist\\ 
+\midrule
+ACO  & 27213089.16  & 28124545.31  & 29333216.11 & 1091.34  & 1179.79   & 1345.40\\
+GA   & 7935999.73    & 10427469.54  & 13690801.96 & 3066.02   & 3179.34  & 3311.68\\
+Tabu & 1879423.91    & 2734560.07  & 4135349.99 & 1500.87  & 1738.27  & 2080.15\\
+\bottomrule
+\caption{Підсумкова статистика (інстанс c201)}
+\end{longtable}
+
+\begin{longtable}{lcccccc}
+\toprule
+Алгоритм & min cost & avg cost & max cost & min dist & avg dist & max dist\\ 
+\midrule
+ACO  & 18066407.52  & 19122801.23  & 19818220.15 & 1276.07  & 1402.66    & 1557.06\\
+GA   & 904598.66     & 1556908.51   & 1970099.22 & 2724.61   & 2854.76   & 2984.61\\
+Tabu & 802890.86     & 1051323.29  & 1294973.43 & 1932.53  & 2229.28   & 2462.77\\
+\bottomrule
+\caption{Підсумкова статистика (інстанс r201)}
+\end{longtable}
+
+\begin{longtable}{lcccccc}
+\toprule
+Алгоритм & min cost & avg cost & max cost & min dist & avg dist & max dist\\ 
+\midrule
+ACO  & 1883688.28    & 1931197.18  & 1978589.90 & 2057.32    & 2220.33  & 2599.46\\
+GA   & 48706.48     & 60048.44   & 74358.90 & 3356.56   & 3414.44    & 3508.37\\
+Tabu & 1949.75      & 2052.95   & 2139.47 & 1949.75   & 2052.95    & 2139.47\\
+\bottomrule
+\caption{Підсумкова статистика (інстанс rc101)}
+\end{longtable}
+
+\begin{longtable}{lcccccc}
+\toprule
+Алгоритм & min cost & avg cost & max cost & min dist & avg dist & max dist\\ 
+\midrule
+ACO  & 16937688.93    & 17538615.63   & 18146784.69 & 1124.59    & 1221.99   & 1369.29\\
+GA   & 826397.00      & 1140599.06    & 1724271.78 & 3534.04    & 3721.18     & 4147.99\\
+Tabu & 411164.46       & 598196.68    & 977916.01 & 2731.54    & 2829.81     & 2966.60\\
+\bottomrule
+\caption{Підсумкова статистика (інстанс rc201)}
+\end{longtable}
+
+\section{Деякі графіки збіжності та маршрутів(інстанс r101)}
+\begin{figure}[ht]
+\centering
+\fbox{\includegraphics[width=.9\linewidth]{D:/University/semestr_6/IntelligentComputing/RR/imgs/aco_r101_convergence.png}}
+\caption{Графік збіжності 5 запусків ACO}
+\end{figure}
+\begin{figure}[ht]
+\centering
+\fbox{\includegraphics[width=.9\linewidth]{D:/University/semestr_6/IntelligentComputing/RR/imgs/aco_r101_route.png}}
+\caption{Графік найкращого маршруту ACO}
+\end{figure}
+
+\begin{figure}[ht]
+\centering
+\fbox{\includegraphics[width=.9\linewidth]{D:/University/semestr_6/IntelligentComputing/RR/imgs/gen_r101_convergence.png}}
+\caption{Графік збіжності 5 запусків GA}
+\end{figure}
+\begin{figure}[ht]
+\centering
+\fbox{\includegraphics[width=.9\linewidth]{D:/University/semestr_6/IntelligentComputing/RR/imgs/gen_r101_route.png}}
+\caption{Графік найкращого маршруту GA}
+\end{figure}
+
+\begin{figure}[ht]
+\centering
+\fbox{\includegraphics[width=.9\linewidth]{D:/University/semestr_6/IntelligentComputing/RR/imgs/tabu_r101_convergence.png}}
+\caption{Графік збіжності 5 запусків Tabu}
+\end{figure}
+\begin{figure}[ht]
+\centering
+\fbox{\includegraphics[width=.9\linewidth]{D:/University/semestr_6/IntelligentComputing/RR/imgs/tabu_r101_route.png}}
+\caption{Графік найкращого маршруту Tabu}
+\end{figure}
+
+\clearpage
+\newpage
+
+\section{Висновки}
+\begin{enumerate}
+  \item \textbf{Поставлена мета досягнута.}  
+        Реалізовано три евристики — мурашиний Ant Colony Optimization (ACO),
+        генетичний GA та траєкторний Tabu Search — з єдиною цільовою
+        функцією та модулем логування; створено скрипт, що
+        автоматично запускає алгоритми, зберігає історію
+        $(\text{iter},t,\text{cost},\text{dist})$ і будує графіки
+        збіжності.
+
+  \item \textbf{Фізибельність і якість рішень.}  
+        За 60\,с \emph{лише Tabu Search} у деяких інстансів знаходить
+        повністю фізибельні тури (\(cost = dist\)); ACO та GA залишають
+        штрафи.  
+        Tabu Search демонструє найменший середній \emph{cost}
+        (≈ 80 \% кращий за GA і ≈ 90 \% — за ACO).  
+        ACO дає найкоротшу відстань \(D\), але накопичує великі штрафи;
+        GA без локального пошуку суттєво відстає за обома метриками.
+
+  \item \textbf{Напрями покращення.}  
+        \begin{itemize}
+          \item Додавання локального пошуку (2-opt/relocate) до GA та
+                ACO має підвищити якість рішень.
+          \item Перехід від звичайної ACS до MACS-VRPTW для мурашиного
+                алгоритму очікувано дасть додатковий приріст.
+          \item Подальші дослідження доцільно спрямувати на
+                автоматичний тюнінг параметрів
+                ($\alpha,\beta,\rho$ для ACO; \textit{tenure} — для Tabu)
+                та паралельні GPU/мультипроцесорні реалізації.
+        \end{itemize}
+\end{enumerate}
+
+\section*{Список джерел}
+\begin{enumerate}
+  \item Dorigo M., Gambardella L.M. Ant Colony System: A Cooperative Learning Approach. \emph{IEEE Trans. Evol. Comput.} 1997.
+  \item Solomon M.M. Algorithms for the VRPTW. \emph{Operations Research}. 1987.
+  \item Taillard E., Gambardella L., Agazzi G. MACS-VRPTW. 1999.
+  \item Laporte G. et al. Handbook of VRP. Springer, 2014.
+  \item https://people.idsia.ch/~luca/macs-vrptw/problems/welcome.htm
+\end{enumerate}
+
+\end{document}

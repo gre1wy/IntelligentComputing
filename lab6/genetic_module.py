@@ -81,7 +81,7 @@ def crossover_indexed(p1, p2, min_r, max_r):
               sampling a random number of unique indices from the combined parents.
     """
 
-    combined = list(dict.fromkeys(p1 + p2))  # Уникальные индексы
+    combined = list(dict.fromkeys(p1 + p2)) 
     k = min(len(combined), random.randint(min_r, max_r))
     return random.sample(combined, k)
 
@@ -115,7 +115,7 @@ def mutate_indexed(individual, total_recipes, min_r, max_r, mutation_rate=0.2):
     if len(new_ind) > min_r and random.random() < mutation_rate / 2:
         del new_ind[random.randint(0, len(new_ind) - 1)]
 
-    return list(dict.fromkeys(new_ind))  # Удаляем дубликаты
+    return list(dict.fromkeys(new_ind))  
 
 # ---------- Генетический алгоритм ----------
 def genetic_algorithm_optimized_indexed(
